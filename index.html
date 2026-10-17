@@ -81,6 +81,7 @@ input,select{padding:9px}
 <!-- NUTRICION -->
 <div id="tabN">
 <div class="card"><div class="row"><span class="mut">Meta de calorías</span><span class="mut">Diario ›</span></div>
+<div class="mut" style="font-size:.78rem;margin-top:2px" id="kPeso">⚖️ según tu peso</div>
 <div><span style="font-size:2rem;font-weight:800" id="kCom">0</span> <span class="mut">/ <span id="kMeta">2607</span> kcal</span><span style="float:right" class="mut"><span id="kRest">2607</span> restantes</span></div>
 <div class="bar"><i id="kBar" style="width:0%"></i></div>
 <div style="text-align:right" class="mut">⌞ Adelgazar ⌟</div>
@@ -131,10 +132,13 @@ input,select{padding:9px}
 <div id="tabP" class="hidden">
 <div class="card"><div class="mut">Registro de progreso ›</div><div><span style="font-size:2rem;font-weight:800" id="pNow">--</span> kg <span style="float:right" class="mut">🎯 <span id="pGoal">--</span> kg</span></div>
 <div class="row"><input id="pW" type="number" step="0.1" placeholder="peso hoy kg" style="flex:1"><button class="btnR" id="pAdd" style="width:auto;padding:11px 20px">Actualizar</button></div>
-<div id="pHist" style="margin-top:8px"></div></div>
+<div class="row" style="margin-top:6px"><span class="mut" style="white-space:nowrap">Fecha toma:</span><input id="pDate" type="date" style="flex:1"></div></div>
+<div class="card"><b>📈 Reporte de peso</b><div id="pRepBody" style="margin-top:4px"><p class="mut">Registra tu peso para ver el reporte.</p></div></div>
 <div class="card"><b>Medidas corporales (cm)</b><div class="grid2" style="margin-top:8px">
 <div><span class="mut">Cintura</span><input id="mCint"></div><div><span class="mut">Pecho</span><input id="mPec"></div>
 <div><span class="mut">Cadera</span><input id="mCad"></div><div><span class="mut">Brazo</span><input id="mBra"></div></div>
+<div class="row" style="margin-top:8px"><span class="mut">📏 Estatura (cm)</span><input id="mAlt" type="number" step="0.5" style="width:120px;text-align:right"></div>
+<div class="row" style="margin-top:6px"><span class="mut">🎂 Nacimiento <b id="edadTxt" style="color:#111"></b></span><input id="mFnac" type="date" style="max-width:170px"></div>
 <button class="btnR" id="mSave" style="margin-top:10px">Guardar medidas</button><div id="mHist" style="margin-top:8px"></div></div>
 <div class="card"><b>Respaldo de tus datos</b><p class="mut">Todo vive en este celular. Exporta una copia por si borras datos o cambias de equipo.</p>
 <div id="stBox" class="mut" style="font-size:.8rem"></div>
@@ -184,7 +188,7 @@ input,select{padding:9px}
 <script>
 /* Bloque 1: onboarding aislado, sin dependencias del resto de la app */
 var si=0, tmp={};
-var APPV='v7.2';
+var APPV='v7.10';
 function pintaVer(){try{var els=document.querySelectorAll('.verTag');for(var i=0;i<els.length;i++){els[i].textContent=APPV}}catch(e){}}
 var STEPS=[
 {opts:['Bajar de peso','Ganar músculo','Definir','Sentirme con más energía'],k:'obj',t:'¿Cuál es tu objetivo?'},
@@ -245,7 +249,7 @@ const COMPS=[
 {n:'Queso fresco (1 tajada 30g)',k:90,p:6,c:1,g:7,fib:0,az:0,sod:225},
 {n:'Hueso de tunco (1 pza 80g, aprox)',k:150,p:12,c:0,g:11,fib:0,az:0,sod:300},
 {n:'Crema (1 cda 15g)',k:45,p:0.5,c:1,g:4.5,fib:0,az:0,sod:15},
-{n:'Chocolate en polvo (1 cda 15g)',k:60,p:1,c:12,g:1,fib:1,az:10,sod:5},
+{n:'Chocolate en polvo (1 cda 15g)',k:60,p:1,c:13.5,g:0,fib:1,az:12,sod:22},
 {n:'Sopa de pollo (1 plato 300ml, aprox)',k:180,p:12,c:15,g:6,fib:2,az:3,sod:600},
 {n:'Pollo dorado (1 porcion 150g, aprox)',k:280,p:30,c:2,g:15,fib:0,az:0,sod:400},
 {n:'Gaseosa normal (vaso 400ml)',k:172,p:0,c:43,g:0,fib:0,az:43,sod:20},
@@ -325,10 +329,16 @@ const PLATOS=[
 function bootApp(){try{const pv=S.get('perfil',null);if(pv){perfil=pv;var w0=document.getElementById('welcome');if(w0)w0.classList.add('hidden');var o=document.getElementById('onb');if(o)o.classList.add('hidden');var a=document.getElementById('app');if(a)a.classList.remove('hidden');try{try{ensureIds()}catch(e){}pintaTodo()}catch(e){}}else if(window.showWelcome){try{showWelcome()}catch(e){}}var w=document.getElementById('jsWarn');if(w)w.style.display='none'}catch(e){}}
 if(document.readyState==='loading'){document.addEventListener('DOMContentLoaded',bootApp)}else{bootApp()};
 // ---- cálculos ----
+function edadDe(fnac){if(!fnac)return 0;var h=new Date();var f=new Date(fnac+'T12:00:00');if(isNaN(f.getTime()))return 0;var e=h.getFullYear()-f.getFullYear();var m=h.getMonth()-f.getMonth();if(m<0||(m===0&&h.getDate()<f.getDate()))e--;return(e>=0&&e<130)?e:0}
+function pesoActual(){try{var pp=S.get('pesos',[]);if(pp.length){var ps=pp.slice().sort(function(a,b){return a.d<b.d?-1:a.d>b.d?1:0});return{v:ps[ps.length-1].v,d:ps[ps.length-1].d,toma:true}}}catch(e){}
+var pf=null;try{pf=JSON.parse(localStorage.getItem('wmg_perfil'))||perfil}catch(e){pf=perfil}
+return{v:(pf&&pf.peso)||0,d:null,toma:false}}
 function metas(){var pf=null;try{pf=JSON.parse(localStorage.getItem('wmg_perfil'))||perfil}catch(e){pf=perfil}if(!pf||!pf.peso){return{k:2607,c:261,p:196,g:87,fib:38,az:65,sod:2300}}
-var bmr=10*pf.peso+6.25*pf.alt-5*pf.edad+(pf.gen==='Femenino'?-161:5);
+var ed=pf.edad||36;if(pf.fnac){var eD=edadDe(pf.fnac);if(eD>0)ed=eD}
+var pa=pesoActual();var w=(pa.v>0)?pa.v:pf.peso;
+var bmr=10*w+6.25*pf.alt-5*ed+(pf.gen==='Femenino'?-161:5);
 var tdee=bmr*pf.act,meta=tdee-700;
-return{k:r(meta),c:r(meta*0.4/4),p:r(pf.peso*1.7),g:r(meta*0.3/9),fib:38,az:65,sod:2300}}
+return{k:r(meta),c:r(meta*0.4/4),p:r(w*1.7),g:r(meta*0.3/9),fib:38,az:65,sod:2300}}
 function racha(){try{var n=0;var d=new Date();var t=hoyK();for(var g=0;g<400;g++){var dk=new Date(d.getTime()-d.getTimezoneOffset()*6e4).toISOString().slice(0,10);if(log[dk]&&log[dk].length){n++;d.setDate(d.getDate()-1)}else if(n===0&&dk===t){d.setDate(d.getDate()-1)}else break}return n}catch(e){return 0}}
 var fechaVista=null;
 function fechaVer(){return fechaVista||hoyK()}
@@ -378,7 +388,8 @@ function menosGo(){var k=fechaVer();var e=log[k][Number(this.getAttribute('data-
 function qeditGo(){var k=fechaVer();var e=log[k][Number(this.getAttribute('data-qedit'))];var base=e.n.split(' x')[0];var nv=Number(prompt('Cantidad exacta para '+base,e.q));if(!(nv>0)||nv>20){return}escalaE(e,nv);S.set('log',log);pintaTodo()}
 function pintaTodo(){var errBox=document.getElementById('errBox');function err(m){if(errBox){errBox.classList.remove('hidden');errBox.textContent='v0.6 aviso: '+m}}
 try{var M=metas();var T=totDia();
-document.getElementById('kMeta').textContent=M.k;document.getElementById('kCom').textContent=r(T.k);document.getElementById('kRest').textContent=r(M.k-T.k);document.getElementById('kBar').style.width=Math.min(100,T.k/M.k*100)+'%';}catch(e){err('calorias: '+e.message);return}
+document.getElementById('kMeta').textContent=M.k;document.getElementById('kCom').textContent=r(T.k);document.getElementById('kRest').textContent=r(M.k-T.k);document.getElementById('kBar').style.width=Math.min(100,T.k/M.k*100)+'%';
+var kp=document.getElementById('kPeso');if(kp){var pa2=pesoActual();kp.textContent=pa2.v>0?(pa2.toma?('⚖️ según '+fKg(pa2.v)+' kg · '+fmtF(pa2.d)):('⚖️ según peso inicial '+fKg(pa2.v)+' kg')):'⚖️ registra tu peso'};}catch(e){err('calorias: '+e.message);return}
 try{var rc=document.getElementById('racha');if(rc)rc.textContent=racha();}catch(e){err('racha: '+e.message)}
 try{var sc=null;if(T.k>0){sc=Math.max(5,Math.min(95,r(50+T.p/M.p*25+T.fib/M.fib*20-T.sod/M.sod*15-T.az/M.az*10)))}
 document.getElementById('score').textContent=(sc===null?'--':sc);document.getElementById('scoreBar').style.width=(sc||0)+'%';}catch(e){err('score: '+e.message)}
@@ -505,15 +516,121 @@ var stS=document.getElementById('stepsSave');if(stS)stS.onclick=function(){var s
 var dS=document.getElementById('delSteps');if(dS)dS.onclick=function(){var sp=S.get('pasos',{});delete sp[fechaVer()];S.set('pasos',sp);pintaFit()};
 var dK=document.getElementById('delKcalDia');if(dK)dK.onclick=function(){var sk=S.get('kcaldia',{});delete sk[fechaVer()];S.set('kcaldia',sk);pintaFit()};
 function pintaProg(){try{var sb=document.getElementById('stBox');if(sb){var nd=0;try{var LL=JSON.parse(localStorage.getItem('wmg_log')||'{}');var kk=Object.keys(LL);for(var zi=0;zi<kk.length;zi++){nd+=(LL[kk[zi]]||[]).length}}catch(e){}var pf0=null;try{pf0=localStorage.getItem('wmg_perfil')}catch(e){}sb.textContent='Guardado aquí: '+(pf0?'perfil sí':'perfil NO')+' · '+nd+' alimentos · '+(S.get('medidas',[]).length)+' medidas · '+(S.get('pesos',[]).length)+' pesos.'}}catch(e){}
-if(!pesos.length){$('pNow').textContent='--';$('pHist').innerHTML='<p class="mut">Registra tu peso para ver tu curva.</p>';return}
-var u=pesos[pesos.length-1];$('pNow').textContent=u.v;var pf=null;try{pf=JSON.parse(localStorage.getItem('wmg_perfil'))}catch(e){}$('pGoal').textContent=(pf&&pf.pobj)?pf.pobj:'--';
-var h='';var arr=pesos.slice(-7).reverse();for(var i=0;i<arr.length;i++){h+='<div class="macro"><span>'+arr[i].d+'</span><b>'+arr[i].v+' kg</b></div>'}$('pHist').innerHTML=h}
-$('pAdd').onclick=()=>{const v=+$('pW').value;if(!(v>0))return;pesos.push({d:hoyK(),v});S.set('pesos',pesos);$('pW').value='';pintaProg()};
-$('mSave').onclick=function(){var m=S.get('medidas',[]);m.push({d:hoyK(),cint:document.getElementById('mCint').value,pec:document.getElementById('mPec').value,cad:document.getElementById('mCad').value,bra:document.getElementById('mBra').value});S.set('medidas',m);var h='';for(var i=m.length-1;i>=0&&i>m.length-6;i--){h+='<div class="macro"><span>'+m[i].d+'</span><b>Cin '+m[i].cint+' / Pec '+m[i].pec+' / Cad '+m[i].cad+' / Bra '+m[i].bra+'</b></div>'}var ml=document.getElementById('mHist');if(ml)ml.innerHTML=h||'<p class="mut">Sin medidas aún.</p>';alert('Medidas guardadas ('+m.length+' registros)')};
-(function(){var m0=S.get('medidas',[]);if(m0.length){var h='';for(var i=m0.length-1;i>=0&&i>m0.length-6;i--){h+='<div class="macro"><span>'+m0[i].d+'</span><b>Cin '+m0[i].cint+' / Pec '+m0[i].pec+' / Cad '+m0[i].cad+' / Bra '+m0[i].bra+'</b></div>'}var ml=document.getElementById('mHist');if(ml)ml.innerHTML=h}})();
+var pf=null;try{pf=JSON.parse(localStorage.getItem('wmg_perfil'))}catch(e){}
+var goal=(pf&&pf.pobj)?pf.pobj:85;$('pGoal').textContent=(pf&&pf.pobj)?pf.pobj:'--';
+var body=document.getElementById('pRepBody');
+if(!pesos.length){$('pNow').textContent='--';if(body)body.innerHTML='<p class="mut">Registra tu peso para ver tu reporte.</p>';return}
+var arr=pesos.slice().sort(function(a,b){return a.d<b.d?-1:a.d>b.d?1:0});
+var u=arr[arr.length-1];$('pNow').textContent=fKg(u.v);
+var first=arr[0];
+var falta=Math.max(0,u.v-goal),base=first.v-goal;
+var avance=base>0?Math.max(0,Math.min(100,(first.v-u.v)/base*100)):(u.v<=goal?100:0);
+var perd=first.v-u.v,pctRed=first.v?Math.abs(perd/first.v*100):0;
+var h='<div class="macro"><span>📈 Primera toma</span><b>'+fmtF(first.d)+' · '+fKg(first.v)+' kg</b></div>';
+h+='<div class="macro"><span>⏱ Última toma</span><b>'+fmtF(u.d)+' · '+fKg(u.v)+' kg</b></div>';
+h+='<div class="macro"><span>'+(perd>=0?'⬇ Peso perdido':'⬆ Peso subido')+'</span><b style="color:'+(perd>=0?'#22c55e':'#e85d6a')+';font-size:1.15rem">'+Math.abs(perd).toFixed(1).replace('.',',')+' kg</b></div>';
+h+='<div class="macro"><span>'+(perd>=0?'📊 Reducción inicial':'📊 Aumento inicial')+'</span><b style="font-size:1.15rem">'+pctRed.toFixed(1).replace('.',',')+' %</b></div>';
+h+='<div class="macro"><span>📏 Estatura</span><b>'+((pf&&pf.alt)?pf.alt+' cm':'—')+'</b></div>';
+var edR=(pf&&pf.fnac)?edadDe(pf.fnac):((pf&&pf.edad)||0);
+if(edR)h+='<div class="macro"><span>🎂 Edad</span><b>'+edR+' años</b></div>';
+h+='<div class="macro"><span>🎯 Meta '+goal+' kg</span><b>'+(falta>0?'faltan '+falta.toFixed(1).replace('.',',')+' kg':'¡meta alcanzada!')+'</b></div>';
+h+='<div class="macro"><span>Tomas registradas</span><b>'+arr.length+'</b></div>';
+h+='<div class="mut" style="font-size:.8rem;margin-top:8px">Avance hacia la meta: '+Math.round(avance)+'%</div>';
+h+='<div class="bar" style="margin:4px 0"><i style="width:'+avance+'%"></i></div>';
+var altP=(pf&&Number(pf.alt))?Number(pf.alt):0;
+if(altP){var m2=Math.pow(altP/100,2),bmi=u.v/m2;
+var cats=[{n:'Bajo peso',min:0,col:'#60a5fa'},{n:'Peso normal',min:18.5,col:'#22c55e'},{n:'Sobrepeso',min:25,col:'#fbbf24'},{n:'Obesidad grado I',min:30,col:'#fb923c'},{n:'Obesidad grado II',min:35,col:'#f87171'},{n:'Obesidad grado III',min:40,col:'#e85d6a'}];
+var ci=0;for(var z=0;z<cats.length;z++){if(bmi>=cats[z].min)ci=z}
+var k1=18.5*m2,k2=24.9*m2,kMeta=goal/m2,mc=0;for(var z2=0;z2<cats.length;z2++){if(kMeta>=cats[z2].min)mc=z2}
+var sigCol='#22c55e',sigTxt='¡Estás en peso normal! ✓';
+if(ci===0){var kgS=18.5*m2-u.v;sigCol='#fbbf24';sigTxt='Sube '+fKg(Math.round(kgS*10)/10)+' kg para Peso normal'}
+else if(ci>1){var kgB=u.v-cats[ci].min*m2;sigCol='#fb923c';sigTxt='Baja '+fKg(Math.round(kgB*10)/10)+' kg para '+cats[ci-1].n}
+h+='<div style="border-top:1px solid var(--line);margin-top:12px;padding-top:8px"><b>🧮 Masa corporal (IMC)</b>';
+h+='<div class="macro"><span>IMC actual</span><b style="color:'+cats[ci].col+';font-size:1.05rem">'+bmi.toFixed(1).replace('.',',')+' · '+cats[ci].n+'</b></div>';
+h+='<div class="macro"><span>⚖️ Peso ideal ('+altP+' cm)</span><b>'+fKg(Math.round(k1*10)/10)+' – '+fKg(Math.round(k2*10)/10)+' kg</b></div>';
+h+='<div class="macro"><span>🏁 Al llegar a '+goal+' kg</span><b style="color:#22c55e">IMC '+kMeta.toFixed(1).replace('.',',')+' · '+cats[mc].n+'</b></div>';
+h+='<div class="macro"><span>➡️ Siguiente categoría</span><b style="color:'+sigCol+'">'+sigTxt+'</b></div>';
+var S0=15,S1=42,SPAN=S1-S0;
+var pos=Math.max(3,Math.min(97,(bmi-S0)/SPAN*100));
+h+='<div style="position:relative;margin-top:24px"><div style="display:flex;height:12px;border-radius:6px;overflow:hidden;background:#eee">';
+for(var s1=0;s1<cats.length;s1++){var a1=Math.max(cats[s1].min,S0),b1=(s1+1<cats.length?cats[s1+1].min:S1);if(b1>a1){var w1=(b1-a1)/SPAN*100;h+='<i style="display:block;height:100%;width:'+w1+'%;background:'+cats[s1].col+'"></i>'}}
+h+='</div>';
+h+='<div style="position:absolute;left:'+pos+'%;top:-4px;bottom:-4px;width:2px;background:#111;border-radius:2px"></div>';
+h+='<div style="position:absolute;left:'+pos+'%;top:-19px;transform:translateX(-50%);font-size:.65rem;font-weight:700;color:#111;white-space:nowrap">Tú '+bmi.toFixed(1).replace('.',',')+'</div>';
+h+='</div>';
+var marks=[18.5,25,30,35,40];
+h+='<div style="position:relative;height:11px;font-size:.62rem;color:#999;margin-top:2px">';
+for(var s2=0;s2<marks.length;s2++){var p2=(marks[s2]-S0)/SPAN*100;h+='<span style="position:absolute;left:'+p2+'%;transform:translateX(-50%)">'+String(marks[s2]).replace('.',',')+'</span>'}
+h+='</div><div style="font-size:.66rem;color:#999;margin-top:3px">IMC = peso ÷ estatura² · categorías OMS para adultos</div></div>'}
+h+='<div style="font-weight:700;margin-top:12px">Evolución del peso corporal</div>';
+h+='<div class="mut" style="font-size:.8rem">Peso registrado en '+first.d.slice(0,4)+' — '+arr.length+' mediciones entre '+mesLargo(first.d)+' y '+mesLargo(u.d)+'.</div>';
+h+=svgPeso(arr,goal);
+h+='<div class="mut" style="margin-top:8px;font-size:.85rem">Tomas (más reciente primero):</div>';
+for(var i=arr.length-1;i>=0;i--){var pr=i>0?arr[i-1]:null;var dl=pr?(arr[i].v-pr.v):null;
+h+='<div class="macro"><span>'+fmtF(arr[i].d)+(i===arr.length-1?' · última':(i===0?' · inicio':''))+'</span><b>'+fKg(arr[i].v)+' kg'+(dl!==null?' <span style="color:'+(dl>0?'#e85d6a':(dl<0?'#22c55e':'#777'))+'">'+(dl>0?'+':'')+dl.toFixed(1).replace('.',',')+' kg</span>':'')+' <button class="btnG" data-pdel="'+i+'" style="padding:6px 10px">Quitar</button></b></div>'}
+if(body){body.innerHTML=h;var pbs=body.querySelectorAll('[data-pdel]');for(var q=0;q<pbs.length;q++){pbs[q].onclick=function(){var ix=+this.getAttribute('data-pdel');var tgt=arr[ix];var pi=-1;for(var j=0;j<pesos.length;j++){if(pesos[j].d===tgt.d&&pesos[j].v===tgt.v){pi=j;break}}if(pi<0)return;if(!confirm('¿Quitar la toma del '+fmtF(tgt.d)+' ('+tgt.v+' kg)?'))return;pesos.splice(pi,1);S.set('pesos',pesos);try{pintaTodo()}catch(e){pintaProg()}}}}}
+var MESES=['Enero','Febrero','Marzo','Abril','Mayo','Junio','Julio','Agosto','Septiembre','Octubre','Noviembre','Diciembre'];
+var MESC=['Ene','Feb','Mar','Abr','May','Jun','Jul','Ago','Sep','Oct','Nov','Dic'];
+function fKg(v){return String(v).replace('.',',')}
+function mesLargo(f){return MESES[parseInt((f||'').slice(5,7),10)-1]||''}
+function mesCorto(f){return MESC[parseInt((f||'').slice(5,7),10)-1]||''}
+function svgPeso(arr,goal){if(arr.length<2)return '<p class="mut" style="font-size:.8rem">Con 2 tomas o más verás la curva aquí.</p>';
+var W=340,H=180,L=48,R=14,T=20,B=28;
+var vs=arr.map(function(a){return a.v});var mn=Math.min.apply(null,vs),mx=Math.max.apply(null,vs);
+if(mx-mn<1){mx+=0.5;mn-=0.5}
+var span=mx-mn,lo=mn-span*0.25,hi=mx+span*0.25;
+var raw=(hi-lo)/4;
+var mag=Math.pow(10,Math.floor(Math.log(raw)/Math.LN10));
+var nrm=raw/mag;
+var step=(nrm<=1?1:nrm<=2?2:nrm<=2.5?2.5:nrm<=5?5:10)*mag;
+var t0=Math.floor(lo/step)*step,t1=Math.ceil(hi/step)*step;
+if(t1-t0<step*2)t1=t0+step*3;
+var y=function(v){return T+(H-T-B)*(1-(v-t0)/(t1-t0))};
+var x=function(i){return L+(W-L-R)*(i/(arr.length-1))};
+var dec=step<1;
+function fN(n){return dec?String(Math.round(n*10)/10).replace('.',','):String(Math.round(n))}
+var s='<svg viewBox="0 0 '+W+' '+H+'" style="width:100%;height:auto;background:#fafafa;border-radius:12px;margin-top:6px">';
+for(var t=t0;t<=t1+1e-9;t+=step){var yy=y(t).toFixed(1);
+s+='<line x1="'+L+'" x2="'+(W-R)+'" y1="'+yy+'" y2="'+yy+'" stroke="#e6e6eb" stroke-width="1"/>';
+s+='<text x="'+(L-6)+'" y="'+(Number(yy)+3.5)+'" font-size="10" text-anchor="end" fill="#999">'+fN(t)+' kg</text>'}
+if(goal>=t0&&goal<=t1){var gy=y(goal).toFixed(1);s+='<line x1="'+L+'" x2="'+(W-R)+'" y1="'+gy+'" y2="'+gy+'" stroke="#22c55e" stroke-width="1.5" stroke-dasharray="5 4"/><text x="'+(W-R)+'" y="'+(Number(gy)-4)+'" font-size="9" text-anchor="end" fill="#22c55e">meta '+goal+'</text>'}
+var dup=false;for(var a1=0;a1<arr.length;a1++)for(var b1=a1+1;b1<arr.length;b1++)if(mesCorto(arr[a1].d)===mesCorto(arr[b1].d))dup=true;
+var pts='';for(var i=0;i<arr.length;i++){pts+=(i?' ':'')+x(i).toFixed(1)+','+y(arr[i].v).toFixed(1)}
+s+='<polyline points="'+pts+'" fill="none" stroke="#f66" stroke-width="2.5" stroke-linejoin="round"/>';
+for(var j=0;j<arr.length;j++){var cx=x(j).toFixed(1),cy=y(arr[j].v);
+s+='<circle cx="'+cx+'" cy="'+cy.toFixed(1)+'" r="5" fill="#f66"/>';
+s+='<text x="'+cx+'" y="'+(cy-9).toFixed(1)+'" font-size="11" font-weight="700" text-anchor="middle" fill="#222">'+String(arr[j].v).replace('.',',')+'</text>';
+s+='<text x="'+cx+'" y="'+(H-8)+'" font-size="10" text-anchor="middle" fill="#888">'+(dup?fmtF(arr[j].d):(arr.length<=4?mesLargo(arr[j].d):mesCorto(arr[j].d)))+'</text>'}
+return s+'</svg>'}
+var pD=document.getElementById('pDate');if(pD){pD.value=hoyK();pD.max=hoyK()}
+$('pAdd').onclick=function(){var v=+$('pW').value;if(!(v>0))return;var f=(pD&&pD.value)?pD.value:hoyK();if(f>hoyK())f=hoyK();
+var ex=-1;for(var i=0;i<pesos.length;i++){if(pesos[i].d===f){ex=i;break}}
+if(ex>=0)pesos[ex].v=v;else pesos.push({d:f,v});
+pesos.sort(function(a,b){return a.d<b.d?-1:a.d>b.d?1:0});
+S.set('pesos',pesos);$('pW').value='';if(pD)pD.value=hoyK();try{pintaTodo()}catch(e){pintaProg()}};
+function pintaMedidas(){var m=S.get('medidas',[]);var h='';for(var i=m.length-1;i>=0&&i>m.length-6;i--){h+='<div class="macro"><span>'+m[i].d+'</span><b>Cin '+(m[i].cint||'—')+' / Pec '+(m[i].pec||'—')+' / Cad '+(m[i].cad||'—')+' / Bra '+(m[i].bra||'—')+'</b> <button class="btnG" data-mdel="'+i+'" style="padding:6px 10px">Quitar</button></div>'}var ml=document.getElementById('mHist');if(!ml)return;ml.innerHTML=h||'<p class="mut">Sin medidas aún.</p>';var bs=ml.querySelectorAll('[data-mdel]');for(var q=0;q<bs.length;q++){bs[q].onclick=function(){var ix=+this.getAttribute('data-mdel');if(!m[ix])return;if(!confirm('¿Quitar las medidas del '+fmtF(m[ix].d)+'?'))return;var mm=S.get('medidas',[]);mm.splice(ix,1);S.set('medidas',mm);pintaMedidas()}}}
+$('mSave').onclick=function(){var c1=document.getElementById('mCint').value,p1=document.getElementById('mPec').value,c2=document.getElementById('mCad').value,b1=document.getElementById('mBra').value;
+var av=Number(document.getElementById('mAlt').value);var hayAlt=(av>=100&&av<=230);
+var fn=document.getElementById('mFnac').value;var hayFn=false,edN=0;
+if(fn){if(fn>hoyK()){alert('La fecha de nacimiento no puede ser futura.');return}
+edN=edadDe(fn);if(edN<10||edN>110){alert('Revisa la fecha de nacimiento (edad debe quedar entre 10 y 110 años).');return}
+hayFn=true}
+if(!(c1||p1||c2||b1||hayAlt||hayFn)){alert('Escribe tus medidas, estatura o nacimiento.');return}
+if(hayAlt||hayFn){try{var pfx=JSON.parse(localStorage.getItem('wmg_perfil')||'{}');
+if(hayAlt)pfx.alt=av;
+if(hayFn){pfx.fnac=fn;pfx.edad=edN;var et=document.getElementById('edadTxt');if(et)et.textContent=edN+' años'}
+S.set('perfil',pfx)}catch(e){}}
+var hayMed=(c1||p1||c2||b1);var partes=[];
+if(hayMed){var m=S.get('medidas',[]);m.push({d:hoyK(),cint:c1,pec:p1,cad:c2,bra:b1});S.set('medidas',m);pintaMedidas();partes.push('Medidas guardadas ('+m.length+' registros)')}
+if(hayAlt||hayFn)partes.push('Datos guardados ✓');
+try{pintaTodo()}catch(e){pintaProg()}alert(partes.join(' · '))};
+pintaMedidas();
+(function(){var ie=document.getElementById('mAlt');if(ie){try{var pf2=JSON.parse(localStorage.getItem('wmg_perfil')||'{}');if(pf2.alt)ie.value=pf2.alt;
+var ff=document.getElementById('mFnac');if(ff&&pf2.fnac)ff.value=pf2.fnac;
+var et=document.getElementById('edadTxt');if(et){var e2=pf2.fnac?edadDe(pf2.fnac):(pf2.edad||0);if(e2)et.textContent=e2+' años'}}catch(e){}}})();
 // nav
 document.querySelectorAll('#nav button[data-t]').forEach(b=>b.onclick=()=>{['N','R','F','P'].forEach(t=>$('tab'+t).classList.add('hidden'));$('tab'+b.dataset.t).classList.remove('hidden');
-document.querySelectorAll('#nav button[data-t]').forEach(x=>x.classList.remove('act'));b.classList.add('act')});
+document.querySelectorAll('#nav button[data-t]').forEach(x=>x.classList.remove('act'));b.classList.add('act');try{pintaTodo()}catch(e){}});
 var dp=document.getElementById('dPrev');if(dp)dp.onclick=function(){var f=fechaVer();var d=new Date(f+'T12:00:00');d.setDate(d.getDate()-1);fechaVista=new Date(d.getTime()-d.getTimezoneOffset()*6e4).toISOString().slice(0,10);pintaTodo()};
 var dn=document.getElementById('dNext');if(dn)dn.onclick=function(){var f=fechaVer();var d=new Date(f+'T12:00:00');d.setDate(d.getDate()+1);var nx=new Date(d.getTime()-d.getTimezoneOffset()*6e4).toISOString().slice(0,10);if(nx>hoyK())return;fechaVista=(nx===hoyK()?null:nx);pintaTodo()};
 var dh=document.getElementById('dHoy');if(dh)dh.onclick=function(){fechaVista=null;pintaTodo()};

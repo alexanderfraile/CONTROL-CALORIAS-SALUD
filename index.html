@@ -145,6 +145,8 @@ input,select{padding:9px}
 <div class="row" style="margin-top:8px"><span class="mut">📏 Estatura (cm)</span><input id="mAlt" type="number" step="0.5" style="width:120px;text-align:right"></div>
 <div class="row" style="margin-top:6px"><span class="mut">🎂 Nacimiento <b id="edadTxt" style="color:#111"></b></span><input id="mFnac" type="date" style="max-width:170px"></div>
 <button class="btnR" id="mSave" style="margin-top:10px">Guardar medidas</button><div id="mHist" style="margin-top:8px"></div></div>
+<div class="card"><b>🔍 Alimentos pendientes <span id="pendN" class="mut" style="font-weight:400"></span></b><div id="pendList"></div>
+<p class="mut" style="font-size:.75rem">Alimentos que buscaste y no estaban en la base. Avísame cuando quieras (captura de esta lista) y los agrego oficiales. Viaja a la nube con tu sincronización.</p></div>
 <div class="card"><b>Respaldo de tus datos</b><p class="mut">Todo vive en este celular. Exporta una copia por si borras datos o cambias de equipo.</p>
 <div id="stBox" class="mut" style="font-size:.8rem"></div>
 <div class="row"><button class="btnG" id="expBtn" style="flex:1">Exportar copia</button><button class="btnG" id="impBtn" style="flex:1">Importar copia</button></div>
@@ -197,7 +199,7 @@ input,select{padding:9px}
 <script>
 /* Bloque 1: onboarding aislado, sin dependencias del resto de la app */
 var si=0, tmp={};
-var APPV='v8.7';
+var APPV='v8.9';
 function pintaVer(){try{var els=document.querySelectorAll('.verTag');for(var i=0;i<els.length;i++){els[i].textContent=APPV}}catch(e){}}
 var STEPS=[
 {opts:['Bajar de peso','Ganar músculo','Definir','Sentirme con más energía'],k:'obj',t:'¿Cuál es tu objetivo?'},
@@ -327,6 +329,12 @@ const COMPS=[
 {n:'Cafe negro vaso 12oz 355ml',k:3,p:0.4,c:1,g:0,fib:0,az:0,sod:8},
 {n:'Leche liquida chorro 30ml',k:19,p:1,c:1.5,g:1,fib:0,az:1.5,sod:15},
 {n:'Azucar 1 cda 12g',k:46,p:0,c:12,g:0,fib:0,az:12,sod:0},
+{n:'Sopa de gallina (1 plato 300ml, aprox)',k:200,p:13,c:17,g:7,fib:2,az:3,sod:600},
+{n:'Gallina asada / dorada (1 porcion 150g, aprox)',k:300,p:30,c:1,g:17,fib:0,az:0,sod:400},
+{n:'Lonja de pescado dorada / frita (1 lonja 120g, aprox)',k:260,p:24,c:8,g:14,fib:0,az:0,sod:350},
+{n:'Empanada rellena de Pollo (Pan Dulce) (1 ud 100g, aprox)',k:260,p:9,c:25,g:13,fib:1,az:4,sod:430},
+{n:'Empanada rellena de Queso Filandez (Pan Dulce) (1 ud 100g, aprox)',k:275,p:9,c:21,g:17,fib:1,az:3,sod:500},
+{n:'Pan Relleno de Frijoles (Pan Dulce) (1 ud 110g, aprox)',k:300,p:10,c:50,g:5,fib:7,az:9,sod:350},
 ];
 const PLATOS=[
 {cat:'Almuerzo',n:'Pescado frito + camarón + arroz (como tu foto)',k:917,parts:[0,1,2,3,4]},
@@ -451,9 +459,12 @@ var b=document.getElementById('ayBtn');if(b)b.onclick=function(){save();alert('H
 // ---- armar menu con check + cantidad v1.0 ----
 var sel=[];var sFiltro='';
 function compNorm(s){return String(s).toLowerCase()}
+function pendGet(){return S.get('pend',[])}
+function pendAdd(nom){nom=String(nom||'').trim();if(!nom)return;var p=pendGet(),ncn=compNorm(nom);for(var i=0;i<p.length;i++){if(p[i]&&compNorm(p[i].n)===ncn){sbToast('Ya estaba anotado ✓',4000);return}}var tt='';try{tt=(document.getElementById('sTiempo')||{}).value||''}catch(e){}p.push({n:nom,f:fechaVer(),t:tt});S.set('pend',p);try{pintaPend()}catch(e2){}sbToast('Anotado en Pendientes ✓ (Progreso → 🔍)',5000);try{if(window.sbCli&&sbCli.auth)sbCli.auth.getSession().then(function(r){if(r.data.session&&typeof sbPush==='function')sbPush('Pendiente subido ✓')})}catch(e3){}}
+function pintaPend(){try{var ln=document.getElementById('pendList'),cn=document.getElementById('pendN');if(!ln)return;var p=pendGet();if(cn)cn.textContent=p.length?'('+p.length+')':'';if(!p.length){ln.innerHTML='<p class="mut" style="font-size:.8rem">Nada pendiente ✓</p>';return}var h='';for(var i=0;i<p.length;i++){var it=p[i];if(!it)continue;h+='<div class="row" style="justify-content:space-between;align-items:center;border-bottom:1px solid #eee;padding:6px 0"><div style="flex:1;min-width:0"><b style="font-size:.9rem">'+escH(it.n)+'</b><br><span class="mut" style="font-size:.7rem">'+(it.f?fmtF(it.f):'')+(it.t?' · '+escH(it.t):'')+'</span></div><button class="btnR" data-pdel="'+i+'" style="width:auto;padding:4px 10px;font-size:.75rem;margin-left:8px">Quitar</button></div>'}ln.innerHTML=h;var bs=ln.querySelectorAll('[data-pdel]');for(var j=0;j<bs.length;j++){bs[j].onclick=function(){var ix=Number(this.getAttribute('data-pdel'));if(!confirm('¿Quitar "'+(p[ix]?p[ix].n:'')+'" de pendientes?'))return;var p2=pendGet();p2.splice(ix,1);S.set('pend',p2);pintaPend();try{if(window.sbCli&&sbCli.auth)sbCli.auth.getSession().then(function(r){if(r.data.session&&typeof sbPush==='function')sbPush('Pendientes actualizados')})}catch(e){}}}}catch(e){}}
 function openSheet(t){document.getElementById('sheet').classList.add('open');var st=document.getElementById('sTiempo');if(t&&st)st.value=t;var lb=document.getElementById('sTiempoLbl');if(lb&&t)lb.textContent=t;sel=[];for(var i=0;i<COMPS.length;i++){sel.push({ci:i,on:false,qty:1})}sFiltro='';var sb=document.getElementById('sBuscar');if(sb)sb.value='';drawComps()}
 function drawComps(){var box=document.getElementById('sComps');var idx=[];for(var i=0;i<sel.length;i++){var nm=COMPS[sel[i].ci].n;if(!sFiltro||compNorm(nm).indexOf(compNorm(sFiltro))>=0)idx.push(i)}idx.sort(function(a,b){var na=COMPS[sel[a].ci].n,nb=COMPS[sel[b].ci].n;return na<nb?-1:na>nb?1:0});
-var h='';for(var k=0;k<idx.length;k++){var i=idx[k];var c=COMPS[sel[i].ci];h+='<div class="comp"><label style="display:flex;gap:8px;align-items:center"><input type="checkbox" data-ch="'+i+'"'+(sel[i].on?' checked':'')+' style="width:22px;height:22px"><b>'+escH(c.n)+'</b></label><div class="row" style="margin-top:6px"><span class="mut">'+c.k+' kcal c/u</span><span>Cant: <input type="number" min="0.5" max="20" step="0.5" value="'+sel[i].qty+'" data-ct="'+i+'" style="width:64px"></span></div></div>'}if(!idx.length)h='<p class="mut">Sin resultados. Avísame y lo agrego a la base.</p>';box.innerHTML=h;
+var h='';for(var k=0;k<idx.length;k++){var i=idx[k];var c=COMPS[sel[i].ci];h+='<div class="comp"><label style="display:flex;gap:8px;align-items:center"><input type="checkbox" data-ch="'+i+'"'+(sel[i].on?' checked':'')+' style="width:22px;height:22px"><b>'+escH(c.n)+'</b></label><div class="row" style="margin-top:6px"><span class="mut">'+c.k+' kcal c/u</span><span>Cant: <input type="number" min="0.5" max="20" step="0.5" value="'+sel[i].qty+'" data-ct="'+i+'" style="width:64px"></span></div></div>'}if(!idx.length){var q0=(sFiltro||'').trim();h='<p class="mut">Sin resultados'+(q0?' para "'+escH(q0)+'"':'')+'.</p>';if(q0){var pl0=S.get('pend',[]),ya0=false;for(var pi0=0;pi0<pl0.length;pi0++){if(pl0[pi0]&&compNorm(pl0[pi0].n)===compNorm(q0)){ya0=true;break}}h+=ya0?'<p class="mut" style="font-size:.85rem">✓ Ya anotado en Pendientes (pestaña Progreso).</p>':'<button class="btnG" id="sPendBtn" style="width:100%;margin-top:4px">➕ Anotar "'+escH(q0)+'" como pendiente</button>'}else{h+='<p class="mut">Escribe el nombre del alimento que buscas.</p>'}}box.innerHTML=h;var pb0=document.getElementById('sPendBtn');if(pb0)pb0.onclick=function(){pendAdd(sFiltro);drawComps()};
 function upd(){var tot=0;for(var k=0;k<sel.length;k++){if(sel[k].on){tot+=COMPS[sel[k].ci].k*sel[k].qty}}document.getElementById('sTot').textContent=Math.round(tot)}
 var chs=box.querySelectorAll('[data-ch]');for(var a=0;a<chs.length;a++){(function(el){el.onchange=function(){sel[Number(el.getAttribute('data-ch'))].on=el.checked;upd()}})(chs[a])}
 var cts=box.querySelectorAll('[data-ct]');for(var b=0;b<cts.length;b++){(function(el){el.oninput=function(){var v=Number(el.value);if(!(v>0))v=1;sel[Number(el.getAttribute('data-ct'))].qty=v;upd()}})(cts[b])}
@@ -529,7 +540,7 @@ var dK=document.getElementById('delKcalDia');if(dK)dK.onclick=function(){var sk=
 function pintaSue(){var hk=fechaVer();var s=S.get('sueno',{})[hk]||null;var tot=document.getElementById('sDormTot'),np=document.getElementById('sNap'),ef=document.getElementById('sEff');if(tot)tot.textContent=(s&&(s.h!=null||s.m!=null))?(s.h||0)+' h '+(s.m||0)+' min':'—';if(np)np.textContent=(s&&s.nap!=null)?s.nap+' min':'—';if(ef)ef.textContent=(s&&s.eff!=null)?s.eff+'%':'—';var dSb=document.getElementById('delSue');if(dSb)dSb.style.display=s?'':'none';var ih=document.getElementById('inSH'),imm=document.getElementById('inSM'),ina=document.getElementById('inSNap'),ie=document.getElementById('inSEff');if(ih)ih.value='';if(imm)imm.value='';if(ina)ina.value='';if(ie)ie.value=''}
 var sueS=document.getElementById('sueSave');if(sueS)sueS.onclick=function(){var hk=fechaVer();var su=S.get('sueno',{})||{};var cur=su[hk]||{};var ihv=document.getElementById('inSH').value,imv=document.getElementById('inSM').value,inav=document.getElementById('inSNap').value,iev=document.getElementById('inSEff').value;if(ihv!==''||imv!==''){var hh=Number(ihv)||0,mm=Number(imv)||0;if(hh<0||hh>24||mm<0||mm>59){alert('Horas 0-24 y minutos 0-59.');return}cur.h=hh;cur.m=mm}if(inav!==''){var nv=Number(inav);if(!(nv>=0&&nv<=900)){alert('Siesta en minutos (0-900).');return}cur.nap=nv}if(iev!==''){var ev=Number(iev);if(!(ev>=0&&ev<=100)){alert('Eficiencia 0-100%.');return}cur.eff=ev}var has=false;for(var ck in cur){has=true;break}if(has)su[hk]=cur;else delete su[hk];S.set('sueno',su);pintaSue()};
 var dSu=document.getElementById('delSue');if(dSu)dSu.onclick=function(){var su=S.get('sueno',{})||{};delete su[fechaVer()];S.set('sueno',su);pintaSue()};
-function pintaProg(){try{var sb=document.getElementById('stBox');if(sb){var nd=0;try{var LL=JSON.parse(localStorage.getItem('wmg_log')||'{}');var kk=Object.keys(LL);for(var zi=0;zi<kk.length;zi++){nd+=(LL[kk[zi]]||[]).length}}catch(e){}var pf0=null;try{pf0=localStorage.getItem('wmg_perfil')}catch(e){}sb.textContent='Guardado aquí: '+(pf0?'perfil sí':'perfil NO')+' · '+nd+' alimentos · '+(S.get('medidas',[]).length)+' medidas · '+(S.get('pesos',[]).length)+' pesos.'}}catch(e){}
+function pintaProg(){try{var sb=document.getElementById('stBox');if(sb){var nd=0;try{var LL=JSON.parse(localStorage.getItem('wmg_log')||'{}');var kk=Object.keys(LL);for(var zi=0;zi<kk.length;zi++){nd+=(LL[kk[zi]]||[]).length}}catch(e){}var pf0=null;try{pf0=localStorage.getItem('wmg_perfil')}catch(e){}sb.textContent='Guardado aquí: '+(pf0?'perfil sí':'perfil NO')+' · '+nd+' alimentos · '+(S.get('medidas',[]).length)+' medidas · '+(S.get('pesos',[]).length)+' pesos.'}try{pintaPend()}catch(e){}}catch(e){}
 var pf=null;try{pf=JSON.parse(localStorage.getItem('wmg_perfil'))}catch(e){}
 var goal=(pf&&pf.pobj)?pf.pobj:85;$('pGoal').textContent=(pf&&pf.pobj)?pf.pobj:'--';
 var body=document.getElementById('pRepBody');

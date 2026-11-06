@@ -199,7 +199,7 @@ input,select{padding:9px}
 <script>
 /* Bloque 1: onboarding aislado, sin dependencias del resto de la app */
 var si=0, tmp={};
-var APPV='v8.9';
+var APPV='v9.0';
 function pintaVer(){try{var els=document.querySelectorAll('.verTag');for(var i=0;i<els.length;i++){els[i].textContent=APPV}}catch(e){}}
 var STEPS=[
 {opts:['Bajar de peso','Ganar músculo','Definir','Sentirme con más energía'],k:'obj',t:'¿Cuál es tu objetivo?'},
@@ -329,12 +329,6 @@ const COMPS=[
 {n:'Cafe negro vaso 12oz 355ml',k:3,p:0.4,c:1,g:0,fib:0,az:0,sod:8},
 {n:'Leche liquida chorro 30ml',k:19,p:1,c:1.5,g:1,fib:0,az:1.5,sod:15},
 {n:'Azucar 1 cda 12g',k:46,p:0,c:12,g:0,fib:0,az:12,sod:0},
-{n:'Sopa de gallina (1 plato 300ml, aprox)',k:200,p:13,c:17,g:7,fib:2,az:3,sod:600},
-{n:'Gallina asada / dorada (1 porcion 150g, aprox)',k:300,p:30,c:1,g:17,fib:0,az:0,sod:400},
-{n:'Lonja de pescado dorada / frita (1 lonja 120g, aprox)',k:260,p:24,c:8,g:14,fib:0,az:0,sod:350},
-{n:'Empanada rellena de Pollo (Pan Dulce) (1 ud 100g, aprox)',k:260,p:9,c:25,g:13,fib:1,az:4,sod:430},
-{n:'Empanada rellena de Queso Filandez (Pan Dulce) (1 ud 100g, aprox)',k:275,p:9,c:21,g:17,fib:1,az:3,sod:500},
-{n:'Pan Relleno de Frijoles (Pan Dulce) (1 ud 110g, aprox)',k:300,p:10,c:50,g:5,fib:7,az:9,sod:350},
 ];
 const PLATOS=[
 {cat:'Almuerzo',n:'Pescado frito + camarón + arroz (como tu foto)',k:917,parts:[0,1,2,3,4]},
